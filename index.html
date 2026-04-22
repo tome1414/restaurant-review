@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Review Flow Mockup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .phone {
+      width: 375px;
+      min-height: 700px;
+      background: #fff;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+      border: 8px solid #222;
+    }
+
+    .phone-notch {
+      width: 120px; height: 28px;
+      background: #222; margin: 0 auto;
+      border-radius: 0 0 18px 18px;
+    }
+
+    .screen {
+      display: none; flex-direction: column;
+      min-height: 640px; padding: 24px 20px 32px;
+      animation: fadeIn 0.35s ease;
+    }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Step indicator ── */
+    .step-bar {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; margin-bottom: 20px; padding-top: 4px;
+    }
+    .step-circle {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; line-height: 1.1;
+      transition: all 0.3s;
+    }
+    .step-circle.done  { background: #1a3a6e; color: #fff; }
+    .step-circle.active { background: #1a3a6e; color: #fff; box-shadow: 0 0 0 3px rgba(26,58,110,0.25); }
+    .step-circle.future { background: #ddd; color: #999; }
+    .step-circle span { font-size: 7px; }
+    .step-arrow { color: #bbb; font-size: 14px; margin: 0 2px; }
+
+    /* ── Shared buttons ── */
+    .btn-dark {
+      background: #1a3a6e; color: #fff;
+      font-size: 16px; font-weight: 700;
+      padding: 16px; border-radius: 50px;
+      border: none; cursor: pointer; width: 100%;
+      margin-top: auto;
+    }
+    .btn-outline {
+      background: transparent; color: #1a3a6e;
+      font-size: 14px; font-weight: 600;
+      padding: 12px; border-radius: 50px;
+      border: 2px solid #1a3a6e; cursor: pointer; width: 100%;
+    }
+    .link-btn {
+      background: none; border: none; color: #1a3a6e;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      text-decoration: underline; display: block;
+      text-align: center; margin-top: 10px;
+    }
+
+    /* ── SCREEN 1: Language ── */
+    #screen1 {
+      background: linear-gradient(160deg, #0f3460, #16213e);
+      align-items: center; justify-content: center; text-align: center; gap: 18px;
+    }
+    .s1-logo {
+      width: 76px; height: 76px; background: rgba(255,255,255,0.1);
+      border-radius: 20px; display: flex; align-items: center;
+      justify-content: center; font-size: 38px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    #screen1 h1 { color: #fff; font-size: 22px; font-weight: 800; }
+    #screen1 p  { color: rgba(255,255,255,0.6); font-size: 13px; line-height: 1.7; }
+    .lang-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .lang-chip {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    }
+    .lang-chip.active { background: #e94560; border-color: #e94560; }
+    .detect-badge {
+      background: rgba(100,220,100,0.15); border: 1px solid rgba(100,220,100,0.4);
+      color: #6ddc6d; font-size: 12px; padding: 8px 16px; border-radius: 20px;
+    }
+
+    /* ── SCREEN 2: Star Rating ── */
+    #screen2 { background: #fafafa; }
+    .rest-header {
+      background: linear-gradient(135deg, #1a3a6e, #0f3460);
+      margin: -24px -20px 24px; padding: 28px 20px 22px;
+      color: #fff; text-align: center;
+    }
+    .rest-header h2 { font-size: 18px; font-weight: 800; }
+    .rest-header p  { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+    .stars { display: flex; justify-content: center; gap: 8px; margin: 20px 0 10px; }
+    .star { font-size: 44px; cursor: pointer; filter: grayscale(1) opacity(0.3); transition: transform 0.15s; }
+    .star.active { filter: none; transform: scale(1.12); }
+    .rating-label { font-size: 14px; color: #e94560; font-weight: 600; height: 20px; text-align: center; margin-bottom: 20px; }
+    .filter-note {
+      background: #fff8e1; border: 1px solid #ffd54f;
+      border-radius: 12px; padding: 12px; font-size: 12px; color: #e65100;
+    }
+
+    /* ── SCREEN 3: Negative ── */
+    #screen3 { background: #fafafa; }
+    .neg-header {
+      background: linear-gradient(135deg, #636e72, #2d3436);
+      margin: -24px -20px 22px; padding: 24px 20px;
+      color: #fff; text-align: center;
+    }
+    .improve-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .improve-tag {
+      background: #f0f0f0; border: 1.5px solid #ddd;
+      padding: 7px 13px; border-radius: 20px; font-size: 12px; color: #555; cursor: pointer;
+    }
+    .improve-tag.selected { background: #fff0f2; border-color: #e94560; color: #e94560; }
+    .fb-textarea {
+      border: 1.5px solid #ddd; border-radius: 12px;
+      padding: 12px; font-size: 14px; resize: none;
+      outline: none; font-family: inherit; width: 100%; color: #333;
+    }
+    .fb-textarea:focus { border-color: #1a3a6e; }
+
+    /* ── SCREEN 4: Platform ── */
+    #screen4 { background: #fafafa; }
+    .pf-header {
+      background: linear-gradient(135deg, #00b894, #00695c);
+      margin: -24px -20px 22px; padding: 24px 20px;
+      color: #fff; text-align: center;
+    }
+    .pf-notice {
+      background: #e8f8f5; border: 1px solid #a8e6cf;
+      border-radius: 12px; padding: 11px 13px;
+      font-size: 12px; color: #00695c; margin-bottom: 18px;
+    }
+    .pf-cards { display: flex; flex-direction: column; gap: 11px; flex: 1; }
+    .pf-card {
+      display: flex; align-items: center; gap: 13px;
+      background: #fff; border: 2px solid #eee;
+      border-radius: 14px; padding: 14px; cursor: pointer; transition: all 0.2s;
+    }
+    .pf-card.primary { border-color: #00b894; background: #f0fdf8; }
+    .pf-card .pf-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .pf-card .pf-info h4 { font-size: 14px; color: #333; font-weight: 700; }
+    .pf-card .pf-info p  { font-size: 11px; color: #888; margin-top: 2px; }
+    .rec-badge { background: #00b894; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-left: 6px; }
+    .pf-arrow { margin-left: auto; color: #ccc; font-size: 18px; }
+    .pf-card.primary .pf-arrow { color: #00b894; }
+
+    /* ── SCREEN 4a: AI Review Text ── */
+    #screen4a { background: #fafafa; }
+    #screen4a h2 {
+      font-size: 18px; font-weight: 800; color: #1a1a2e;
+      text-align: center; line-height: 1.5; margin-bottom: 6px;
+    }
+    #screen4a .sub {
+      font-size: 13px; color: #888; text-align: center;
+      line-height: 1.7; margin-bottom: 16px;
+    }
+    .ai-text-box {
+      background: #fff; border: 1.5px solid #ddd;
+      border-radius: 16px; padding: 18px; font-size: 14px;
+      color: #333; line-height: 1.8; flex: 1;
+      position: relative; overflow-y: auto;
+    }
+    .ai-label {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #eff6ff; color: #1a3a6e;
+      font-size: 11px; font-weight: 700; padding: 4px 10px;
+      border-radius: 20px; margin-bottom: 12px;
+    }
+    .ai-thinking {
+      display: flex; gap: 6px; align-items: center;
+      font-size: 13px; color: #aaa; margin: 20px 0;
+      justify-content: center;
+    }
+    .dot-pulse span {
+      display: inline-block; width: 8px; height: 8px;
+      background: #1a3a6e; border-radius: 50; opacity: 0.3;
+      animation: pulse 1.2s infinite;
+    }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,80%,100%{opacity:0.3;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+    .disclaimer {
+      font-size: 11px; color: #aaa; text-align: left;
+      margin-top: 12px; line-height: 1.6;
+    }
+    .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+
+    /* ── SCREEN 4b: How to Post ── */
+    #screen4b { background: #fafafa; }
+    #screen4b h2 {
+      font-size: 20px; font-weight: 800; color: #1a1a2e;
+      text-align: center; margin-bottom: 4px;
+    }
+    #screen4b .sub { font-size: 13px; color: #888; text-align: center; margin-bottom: 18px; }
+    .copied-badge {
+      background: #e8f8f5; border: 1.5px solid #00b894;
+      border-radius: 12px; padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: #00695c; font-weight: 600;
+      margin-bottom: 18px;
+    }
+    .how-to-card {
+      background: #fff; border: 1.5px solid #eee;
+      border-radius: 16px; padding: 16px; margin-bottom: 16px;
+      position: relative;
+    }
+    .how-to-title { font-size: 12px; color: #888; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px; }
+    .how-steps { display: flex; flex-direction: column; gap: 12px; }
+    .how-step { display: flex; align-items: flex-start; gap: 10px; }
+    .how-step-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #e94560; color: #fff;
+      font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .how-step-text { font-size: 13px; color: #333; line-height: 1.5; padding-top: 3px; }
+    .how-step-text strong { color: #e94560; }
+    .google-preview {
+      background: #f8f9fa; border: 1px solid #ddd;
+      border-radius: 12px; padding: 14px; margin-top: 8px;
+      font-size: 12px; color: #555; line-height: 1.6;
+    }
+    .google-preview .gp-field {
+      border: 1.5px solid #e94560; border-radius: 8px;
+      padding: 8px; margin: 6px 0; position: relative;
+    }
+    .gp-tag {
+      position: absolute; top: -10px; left: 8px;
+      background: #e94560; color: #fff; font-size: 10px;
+      font-weight: 700; padding: 1px 8px; border-radius: 10px;
+    }
+    .gp-stars { color: #ddd; font-size: 16px; letter-spacing: 2px; }
+
+    /* ── SCREEN 5: Roulette ── */
+    #screen5 {
+      background: linear-gradient(160deg, #1a1a2e, #16213e);
+      align-items: center; justify-content: center; text-align: center; gap: 14px;
+    }
+    #screen5 h2 { color: #fff; font-size: 22px; font-weight: 800; }
+    #screen5 p  { color: rgba(255,255,255,0.6); font-size: 13px; }
+    .roulette-wrap { position: relative; width: 260px; height: 260px; margin: 6px auto; }
+    .roulette-needle {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 10px solid transparent; border-right: 10px solid transparent;
+      border-top: 24px solid #e94560;
+      filter: drop-shadow(0 2px 6px rgba(233,69,96,0.6));
+    }
+    .roulette-center {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #fff; border: 4px solid #e94560; z-index: 10;
+    }
+    .spin-btn {
+      background: linear-gradient(135deg, #e94560, #c0392b);
+      color: #fff; font-size: 18px; font-weight: 800;
+      padding: 16px 48px; border-radius: 50px; border: none; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(233,69,96,0.4);
+    }
+    .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── SCREEN 6: Prize ── */
+    #screen6 {
+      background: linear-gradient(160deg, #1a1a2e, #16213e);
+      align-items: center; justify-content: center; text-align: center; gap: 14px;
+    }
+    .prize-emoji { font-size: 80px; animation: pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275); }
+    @keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+    .prize-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 24px; padding: 20px 24px; width: 100%; }
+    .prize-name { color: #ffd700; font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+    .prize-desc { color: rgba(255,255,255,0.7); font-size: 13px; }
+    .prize-code-wrap { width: 100%; }
+    .prize-code-label { color: rgba(255,255,255,0.5); font-size: 11px; margin-bottom: 6px; }
+    .prize-code { background: rgba(255,215,0,0.1); border: 1.5px dashed #ffd700; border-radius: 12px; padding: 12px 20px; color: #ffd700; font-size: 20px; font-weight: 800; letter-spacing: 4px; }
+
+    /* ── SCREEN 7: LINE ── */
+    #screen7 { background: #fafafa; align-items: center; justify-content: center; text-align: center; gap: 14px; }
+    .line-logo { width: 80px; height: 80px; background: #06C755; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 44px; margin: 0 auto; box-shadow: 0 8px 24px rgba(6,199,85,0.3); }
+    #screen7 h2 { font-size: 20px; color: #333; font-weight: 800; }
+    #screen7 > p { font-size: 13px; color: #888; line-height: 1.7; }
+    .line-benefits { background: #f0fdf4; border: 1px solid #a8e6cf; border-radius: 16px; padding: 16px; width: 100%; text-align: left; }
+    .line-benefit { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #333; padding: 5px 0; }
+    .line-btn { background: #06C755; color: #fff; font-size: 16px; font-weight: 800; padding: 16px; border-radius: 14px; border: none; cursor: pointer; width: 100%; box-shadow: 0 6px 20px rgba(6,199,85,0.3); display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .skip-link { color: #ccc; font-size: 12px; cursor: pointer; text-decoration: underline; }
+
+    /* ── Nav ── */
+    .nav-bar { display: flex; gap: 6px; padding: 10px 14px; background: #fff; border-top: 1px solid #eee; flex-wrap: wrap; }
+    .nav-btn { flex: 1; min-width: 48px; padding: 8px 2px; border-radius: 8px; font-size: 10px; font-weight: 600; cursor: pointer; border: 1.5px solid #ddd; background: #fff; color: #666; }
+    .nav-btn.current { background: #1a3a6e; color: #fff; border-color: #1a3a6e; }
+  </style>
+</head>
+<body>
+
+<div style="display:flex; flex-direction:column; align-items:center; gap:16px;">
+
+  <div class="phone">
+    <div class="phone-notch"></div>
+
+    <!-- ══ SCREEN 1: Language ══ -->
+    <div class="screen active" id="screen1">
+      <div style="height:16px"></div>
+      <div class="s1-logo" style="margin:0 auto;">🍜</div>
+      <div style="height:8px"></div>
+      <h1 style="color:#fff;text-align:center;">Som Tam Garden</h1>
+      <p style="color:rgba(255,255,255,0.6);text-align:center;font-size:13px;line-height:1.7;">
+        ご来店ありがとうございます！<br>Thank you for visiting!<br>ขอบคุณที่มาใช้บริการ
+      </p>
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px;">言語を選択 / Select language:</div>
+        <div class="lang-chips" style="justify-content:center;">
+          <div class="lang-chip active" onclick="selectLang(this,'ja')">🇯🇵 日本語</div>
+          <div class="lang-chip" onclick="selectLang(this,'th')">🇹🇭 ภาษาไทย</div>
+          <div class="lang-chip" onclick="selectLang(this,'en')">🇺🇸 English</div>
+          <div class="lang-chip" onclick="selectLang(this,'zh')">🇨🇳 中文</div>
+        </div>
+      </div>
+      <div class="detect-badge" style="text-align:center;">✓ 自動検出: 日本語 (変更可能)</div>
+      <p style="font-size:11px;color:rgba(255,255,255,0.4);text-align:center;">アンケートに答えると特典プレゼント！🎁</p>
+      <button class="btn-dark" style="border-radius:14px;margin-top:16px;" onclick="goTo(2)">アンケートに答える →</button>
+    </div>
+
+    <!-- ══ SCREEN 2: Star Rating ══ -->
+    <div class="screen" id="screen2">
+      <div class="step-bar">
+        <div class="step-circle done"><span>STEP</span>1</div>
+        <div class="step-arrow">▶</div>
+        <div class="step-circle active"><span>STEP</span>2</div>
+        <div class="step-arrow">▶</div>
+        <div class="step-circle future"><span>STEP</span>3</div>
+      </div>
+      <div class="rest-header">
+        <h2>今日のご体験はいかがでしたか？</h2>
+        <p>How was your experience today?</p>
+      </div>
+      <div style="text-align:center; flex:1;">
+        <div style="font-size:15px;color:#333;font-weight:700;margin-bottom:4px;">総合評価</div>
+        <div style="font-size:13px;color:#888;margin-bottom:4px;">正直にお聞かせください</div>
+        <div class="stars" id="stars">
+          <span class="star" onclick="rate(1)">⭐</span>
+          <span class="star" onclick="rate(2)">⭐</span>
+          <span class="star" onclick="rate(3)">⭐</span>
+          <span class="star" onclick="rate(4)">⭐</span>
+          <span class="star" onclick="rate(5)">⭐</span>
+        </div>
+        <div class="rating-label" id="ratingLabel">タップして評価してください</div>
+        <div class="filter-note">
+          💡 <strong>内部フィルタ:</strong> 4★以上 → Google等に誘導<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;3★以下 → 内部フィードバックのみ
+        </div>
+      </div>
+      <button class="btn-dark" style="border-radius:14px;" id="rateBtn" onclick="submitRating()" disabled style="opacity:0.4">次へ →</button>
+    </div>
+
+    <!-- ══ SCREEN 3: Negative ══ -->
+    <div class="screen" id="screen3">
+      <div class="neg-header">
+        <div style="font-size:36px;margin-bottom:8px;">🙏</div>
+        <h2 style="font-size:17px;">ご意見をお聞かせください</h2>
+        <p style="font-size:12px;opacity:0.7;margin-top:4px;">改善のため、詳しく教えてください</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;flex:1;">
+        <div>
+          <div style="font-size:13px;color:#555;font-weight:600;margin-bottom:8px;">改善してほしい点</div>
+          <div class="improve-tags">
+            <div class="improve-tag" onclick="this.classList.toggle('selected')">料理の味</div>
+            <div class="improve-tag" onclick="this.classList.toggle('selected')">提供スピード</div>
+            <div class="improve-tag" onclick="this.classList.toggle('selected')">スタッフ対応</div>
+            <div class="improve-tag" onclick="this.classList.toggle('selected')">清潔さ</div>
+            <div class="improve-tag" onclick="this.classList.toggle('selected')">価格</div>
+            <div class="improve-tag" onclick="this.classList.toggle('selected')">雰囲気</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;color:#555;font-weight:600;margin-bottom:6px;">詳しいコメント（任意）</div>
+          <textarea class="fb-textarea" rows="3" placeholder="お気づきの点をご記入ください..."></textarea>
+        </div>
+        <div style="background:#f8f8f8;border-radius:12px;padding:12px;font-size:12px;color:#888;">
+          ⚡ このフィードバックはオーナーに直接届きます。<br>
+          Googleマップには<strong>掲載されません</strong>。
+        </div>
+      </div>
+      <button class="btn-dark" style="border-radius:14px;margin-top:16px;" onclick="goTo(5)">送信して特典を受け取る 🎁</button>
+    </div>
+
+    <!-- ══ SCREEN 4: Platform Selection ══ -->
+    <div class="screen" id="screen4">
+      <div class="step-bar">
+        <div class="step-circle done"><span>STEP</span>1</div>
+        <div class="step-arrow">▶</div>
+        <div class="step-circle done"><span>STEP</span>2</div>
+        <div class="step-arrow">▶</div>
+        <div class="step-circle active"><span>STEP</span>3</div>
+      </div>
+      <div class="pf-header">
+        <div style="font-size:36px;margin-bottom:6px;">🎉</div>
+        <h2 style="font-size:18px;">ありがとうございます！</h2>
+        <p style="font-size:12px;opacity:0.8;margin-top:4px;">クチコミを書いてさらに特典をGET！</p>
+      </div>
+      <div class="pf-notice">🤖 言語設定を検出しました：<strong>日本語</strong></div>
+      <div class="pf-cards">
+        <div class="pf-card primary" onclick="startAIReview('google')">
+          <div class="pf-icon" style="background:#f0f0f0;">🗺️</div>
+          <div class="pf-info">
+            <h4>Google マップ <span class="rec-badge">おすすめ</span></h4>
+            <p>最も集客効果が高い</p>
+          </div>
+          <div class="pf-arrow">›</div>
+        </div>
+        <div class="pf-card" onclick="startAIReview('instagram')">
+          <div class="pf-icon" style="background:#ffeef8;">📸</div>
+          <div class="pf-info">
+            <h4>Instagram</h4>
+            <p>写真と一緒にシェア</p>
+          </div>
+          <div class="pf-arrow">›</div>
+        </div>
+        <div class="pf-card" onclick="startAIReview('tripadvisor')">
+          <div class="pf-icon" style="background:#fff0e8;">🧳</div>
+          <div class="pf-info">
+            <h4>TripAdvisor</h4>
+            <p>旅行者に人気</p>
+          </div>
+          <div class="pf-arrow">›</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#aaa;text-align:center;margin-top:12px;">
+        ※ タイ人→Wongnai/Google ／ 欧米人→TripAdvisor/Google
+      </div>
+    </div>
+
+    <!-- ══ SCREEN 4a: AI Review Text ══ -->
+    <div class="screen" id="screen4a">
+      <h2>アンケート回答結果を元に<br>口コミ文章案を作成しました</h2>
+      <p class="sub">
+        ご回答いただき、ありがとうございます。<br>
+        アンケートをもとに口コミの文章案を作成しました。<br>
+        よろしければ、ぜひ口コミの投稿にご協力いただけますと幸いです。
+      </p>
+
+      <div class="ai-text-box" id="aiTextBox">
+        <div class="ai-thinking" id="aiThinking">
+          <div class="dot-pulse"><span></span><span></span><span></span></div>
+          <span>AIが文章を生成中...</span>
+        </div>
+        <div id="aiTextContent" style="display:none;">
+          <div class="ai-label">✨ AI生成テキスト</div>
+          <p id="aiTextBody"></p>
+        </div>
+      </div>
+
+      <p class="disclaimer">上記はアンケート結果をもとにAIが作成した文章案です。必ず内容をチェックし、ご自身の体験や感じたことを反映させたうえで、編集してから口コミとしてご活用ください。</p>
+
+      <div class="btn-group">
+        <button class="btn-dark" style="border-radius:14px;" id="copyBtn" onclick="copyAndProceed()" disabled>この口コミをコピーして進む</button>
+        <button class="btn-outline" onclick="regenerateReview()">もう一度作成する</button>
+        <button class="link-btn" onclick="goTo(4)">← プラットフォームを変更する</button>
+      </div>
+    </div>
+
+    <!-- ══ SCREEN 4b: How to Post ══ -->
+    <div class="screen" id="screen4b">
+      <h2>口コミがコピーされました</h2>
+      <p class="sub" style="margin-bottom:14px;">以下の手順でGoogleレビューに貼り付けてください</p>
+
+      <div class="copied-badge">
+        <span style="font-size:20px;">✅</span>
+        <div>
+          <div style="font-weight:700;">口コミ文章をコピー済み</div>
+          <div style="font-size:11px;font-weight:400;margin-top:2px;">ペーストするだけで投稿できます</div>
+        </div>
+      </div>
+
+      <div class="how-to-card">
+        <div class="how-to-title">GOOGLE レビュー投稿 手順</div>
+        <div class="how-steps">
+          <div class="how-step">
+            <div class="how-step-num">1</div>
+            <div class="how-step-text"><strong>星を選択</strong>してください</div>
+          </div>
+          <div class="how-step">
+            <div class="how-step-num">2</div>
+            <div class="how-step-text"><strong>コピーした口コミを貼り付け</strong>てください</div>
+          </div>
+          <div class="how-step">
+            <div class="how-step-num">3</div>
+            <div class="how-step-text">画像や動画があれば<strong>添付</strong>する</div>
+          </div>
+          <div class="how-step">
+            <div class="how-step-num">4</div>
+            <div class="how-step-text"><strong>投稿ボタン</strong>を押す</div>
+          </div>
+        </div>
+
+        <div class="google-preview" style="margin-top:14px;">
+          <div style="font-size:11px;color:#aaa;margin-bottom:8px;">▼ Googleレビュー画面イメージ</div>
+          <div class="gp-field">
+            <span class="gp-tag">①星を選択</span>
+            <div class="gp-stars">★ ★ ★ ★ ★</div>
+          </div>
+          <div class="gp-field" style="margin-top:14px;">
+            <span class="gp-tag">②コピーした口コミを貼り付け</span>
+            <div style="font-size:12px;color:#aaa;padding-top:4px;">この場所での自分の体験や感想を共有しましょう</div>
+          </div>
+          <div class="gp-field" style="margin-top:14px;">
+            <span class="gp-tag">③画像や動画があれば添付する</span>
+            <div style="font-size:12px;color:#1a73e8;text-align:center;padding:4px;">📷 写真や動画を追加</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-dark" style="border-radius:14px;" onclick="goToReviewSite()">Googleレビューに移動 →</button>
+      <button class="link-btn" onclick="goTo(5)">レビューをスキップして特典へ</button>
+    </div>
+
+    <!-- ══ SCREEN 5: Roulette ══ -->
+    <div class="screen" id="screen5">
+      <div style="height:12px;"></div>
+      <h2>🎰 ラッキールーレット！</h2>
+      <p>スピンして特典をGETしよう✨</p>
+      <div class="roulette-wrap">
+        <canvas id="rouletteCanvas" width="260" height="260" style="border-radius:50%;"></canvas>
+        <div class="roulette-needle"></div>
+        <div class="roulette-center"></div>
+      </div>
+      <button class="spin-btn" id="spinBtn" onclick="spinRoulette()">🎲 SPIN!</button>
+    </div>
+
+    <!-- ══ SCREEN 6: Prize ══ -->
+    <div class="screen" id="screen6">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;">
+        <div id="prizeEmoji" class="prize-emoji">🍺</div>
+        <div style="color:#ffd700;font-size:13px;font-weight:700;letter-spacing:2px;">🎊 当選！CONGRATULATIONS! 🎊</div>
+        <div class="prize-card">
+          <div class="prize-name" id="prizeName">ビール1杯無料！</div>
+          <div class="prize-desc" id="prizeDesc">お会計時にスタッフへご提示ください</div>
+        </div>
+        <div class="prize-code-wrap">
+          <div class="prize-code-label">クーポンコード</div>
+          <div class="prize-code" id="prizeCode">BEER-2024</div>
+        </div>
+        <div style="color:rgba(255,255,255,0.4);font-size:11px;">有効期限: 本日のお会計のみ</div>
+      </div>
+      <button class="btn-dark" style="border-radius:14px;" onclick="goTo(7)">LINEで保存する 💚</button>
+    </div>
+
+    <!-- ══ SCREEN 7: LINE OA ══ -->
+    <div class="screen" id="screen7">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;">
+        <div class="line-logo">💬</div>
+        <h2>LINEで友達追加して<br>クーポンを受け取ろう！</h2>
+        <p>Som Tam GardenのLINE公式アカウントを<br>友達追加するとクーポンが届きます。</p>
+        <div class="line-benefits">
+          <div class="line-benefit"><span>🎁</span> 今日のクーポンをLINEで受け取れる</div>
+          <div class="line-benefit"><span>📣</span> 新メニュー・キャンペーン情報</div>
+          <div class="line-benefit"><span>🎂</span> 誕生日クーポンプレゼント</div>
+          <div class="line-benefit"><span>🔔</span> 次回来店で使えるクーポン配信</div>
+        </div>
+      </div>
+      <button class="line-btn" onclick="alert('LINE OA友達追加完了！\n（実装時はLINE APIと連携）')">
+        <span style="font-size:22px;">💬</span>友達追加してクーポンを受け取る
+      </button>
+      <span class="skip-link" onclick="alert('ありがとうございました！またのご来店をお待ちしております。')">スキップする</span>
+    </div>
+
+    <!-- Nav -->
+    <div class="nav-bar" id="navBar">
+      <button class="nav-btn" id="nav1" onclick="goTo(1)">①言語</button>
+      <button class="nav-btn" id="nav2" onclick="goTo(2)">②評価</button>
+      <button class="nav-btn" id="nav4" onclick="goTo(4)">③PF</button>
+      <button class="nav-btn" id="nav4a" onclick="goTo('4a')">④AI文章</button>
+      <button class="nav-btn" id="nav4b" onclick="goTo('4b')">⑤投稿手順</button>
+      <button class="nav-btn" id="nav5" onclick="goTo(5)">⑥ガチャ</button>
+      <button class="nav-btn" id="nav7" onclick="goTo(7)">⑦LINE</button>
+    </div>
+  </div>
+
+  <div style="color:#666;font-size:11px;text-align:center;max-width:375px;">
+    ④AI文章・⑤投稿手順 が今回追加した画面です
+  </div>
+</div>
+
+<script>
+  let currentRating = 0;
+  let selectedPlatform = 'google';
+  let spinning = false;
+  let rouletteAngle = 0;
+
+  const ratingLabels = ['','とても残念でした','残念でした','普通でした','良かったです！','最高でした！🎉'];
+
+  const aiTexts = {
+    5: [
+      'タイ料理の中でも特に印象に残るお店でした。スタッフの方々の笑顔と丁寧な接客が心地よく、料理の味も本格的で満足度が非常に高かったです。特にトムカーガイのクリーミーな風味は絶品！バンコク滞在中にまた必ず立ち寄りたいと思います。トンローエリアで本格タイ料理を楽しむなら、来店の価値は十分あります。',
+      '雰囲気、料理、サービスすべてが高水準でした。メニューの豊富さに驚き、どれを頼んでも美味しく、友人とシェアしながら楽しめました。価格帯もリーズナブルで、コスパ抜群です。次回は家族を連れてきたいと思います！',
+    ],
+    4: [
+      '全体的に満足のいくお店でした。料理は美味しく、スタッフの対応も丁寧でした。少し混んでいて待ち時間がありましたが、料理の質を考えると十分納得できます。メニューの豊富さが魅力的で、次回は友人と一緒にもっといろいろな料理を試したいと思っています。トンローエリアで食事をするなら、おすすめできるお店です。',
+      '店内の雰囲気は少し気になる点もありましたが、スタッフの対応は普通で居心地は良かったです。可能であれば、もう少し落ち着いた空間だと嬉しいかもしれません。でも、メニューの豊富さが魅力的だったので、次回は友人と一緒にもっといろいろな部位を試したいと思っています😊 トンローエリアで焼肉を楽しむなら、来店の価値ありだと思います！',
+    ],
+  };
+
+  function selectLang(el, lang) {
+    document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function goTo(n) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen' + n).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('current'));
+    const map = {1:'nav1',2:'nav2',3:'nav2','4':'nav4','4a':'nav4a','4b':'nav4b',5:'nav5',6:'nav5',7:'nav7'};
+    if(map[String(n)]) document.getElementById(map[String(n)]).classList.add('current');
+    if(n === 5) drawRoulette(0);
+  }
+
+  function rate(n) {
+    currentRating = n;
+    document.querySelectorAll('.star').forEach((s, i) => s.classList.toggle('active', i < n));
+    document.getElementById('ratingLabel').textContent = ratingLabels[n];
+    const btn = document.getElementById('rateBtn');
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+
+  function submitRating() {
+    goTo(currentRating >= 4 ? 4 : 3);
+  }
+
+  function startAIReview(platform) {
+    selectedPlatform = platform;
+    goTo('4a');
+    showAIThinking();
+  }
+
+  function showAIThinking() {
+    document.getElementById('aiThinking').style.display = 'flex';
+    document.getElementById('aiTextContent').style.display = 'none';
+    document.getElementById('copyBtn').disabled = true;
+    setTimeout(() => {
+      const pool = aiTexts[currentRating >= 4 ? currentRating : 4] || aiTexts[4];
+      const text = pool[Math.floor(Math.random() * pool.length)];
+      document.getElementById('aiTextBody').textContent = text;
+      document.getElementById('aiThinking').style.display = 'none';
+      document.getElementById('aiTextContent').style.display = 'block';
+      document.getElementById('copyBtn').disabled = false;
+    }, 2000);
+  }
+
+  function regenerateReview() {
+    showAIThinking();
+  }
+
+  function copyAndProceed() {
+    const text = document.getElementById('aiTextBody').textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    goTo('4b');
+  }
+
+  function goToReviewSite() {
+    alert('実装時はここでGoogleレビューページへ遷移します。\n（window.open でGoogle Maps URLを開く）');
+    goTo(5);
+  }
+
+  // ── Roulette ──
+  const segments = [
+    { label: 'ビール\n1杯無料', color: '#e94560' },
+    { label: '20%\nOFF', color: '#f39c12' },
+    { label: 'デザート\n無料', color: '#00b894' },
+    { label: '次回\nドリンク券', color: '#9b59b6' },
+    { label: '10%\nOFF', color: '#3498db' },
+    { label: 'フォト\n特典', color: '#e67e22' },
+  ];
+
+  const prizes = [
+    { name: 'ビール1杯無料！', emoji: '🍺', desc: 'お会計時にスタッフへご提示ください', code: 'BEER-2024' },
+    { name: 'お会計20%オフ！', emoji: '💰', desc: '本日のお会計に適用されます', code: 'OFF20-2024' },
+    { name: 'デザート無料！', emoji: '🍮', desc: 'お好きなデザートを1品どうぞ', code: 'DESS-2024' },
+    { name: '次回ドリンク券！', emoji: '🥤', desc: '次回来店時に1ドリンク無料', code: 'NEXT-2024' },
+    { name: 'スパイシー割引10%！', emoji: '🌶️', desc: '辛さレベルアップで10%引き', code: 'HOT10-2024' },
+    { name: 'フォト特典！', emoji: '📸', desc: '料理1品を無料で撮影サービス', code: 'PHOTO-2024' },
+  ];
+
+  function drawRoulette(rotation) {
+    const canvas = document.getElementById('rouletteCanvas');
+    const ctx = canvas.getContext('2d');
+    const cx = 130, cy = 130, r = 126;
+    const slice = (2 * Math.PI) / segments.length;
+    ctx.clearRect(0, 0, 260, 260);
+    segments.forEach((seg, i) => {
+      const start = rotation + i * slice - Math.PI / 2;
+      const end = start + slice;
+      ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end); ctx.closePath();
+      ctx.fillStyle = seg.color; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice / 2);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+      seg.label.split('\n').forEach((line, li, arr) => {
+        ctx.fillText(line, r * 0.6, (li - (arr.length - 1) / 2) * 16);
+      });
+      ctx.restore();
+    });
+  }
+
+  function spinRoulette() {
+    if (spinning) return;
+    spinning = true;
+    document.getElementById('spinBtn').disabled = true;
+    document.getElementById('spinBtn').textContent = '🌀 Spinning...';
+    const prizeIdx = Math.floor(Math.random() * segments.length);
+    const target = (5 + Math.floor(Math.random() * 5)) * 2 * Math.PI + (2 * Math.PI / segments.length * prizeIdx);
+    let start = null;
+    const duration = 4000;
+    function animate(ts) {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      rouletteAngle = (1 - Math.pow(1 - p, 4)) * target;
+      drawRoulette(rouletteAngle);
+      if (p < 1) { requestAnimationFrame(animate); }
+      else {
+        spinning = false;
+        setTimeout(() => {
+          const prize = prizes[prizeIdx];
+          document.getElementById('prizeEmoji').textContent = prize.emoji;
+          document.getElementById('prizeName').textContent = prize.name;
+          document.getElementById('prizeDesc').textContent = prize.desc;
+          document.getElementById('prizeCode').textContent = prize.code;
+          goTo(6);
+        }, 400);
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+  drawRoulette(0);
+  document.getElementById('nav1').classList.add('current');
+</script>
+</body>
+</html>
