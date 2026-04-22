@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restaurant Review Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --free: #0f3460;
+      --free-light: #e8eef7;
+      --paid: #b7791f;
+      --paid-light: #fef9ec;
+      --paid-border: #f6c05c;
+      --gray: #f4f5f7;
+      --text: #1a1a2e;
+      --muted: #888;
+      --green: #00b894;
+      --red: #e94560;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f2f5;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 220px; background: #0f3460; color: #fff;
+      padding: 24px 0; flex-shrink: 0;
+      display: flex; flex-direction: column;
+    }
+    .sidebar-logo {
+      padding: 0 20px 24px;
+      font-size: 16px; font-weight: 800;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar-logo span { font-size: 11px; font-weight: 400; opacity: 0.6; display: block; margin-top: 2px; }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px; font-size: 13px; cursor: pointer;
+      transition: background 0.15s; color: rgba(255,255,255,0.7);
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 700; }
+    .nav-section { padding: 16px 20px 6px; font-size: 10px; color: rgba(255,255,255,0.35); letter-spacing: 1px; }
+
+    .sidebar-store {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 12px; color: rgba(255,255,255,0.6);
+    }
+    .sidebar-store strong { color: #fff; display: block; font-size: 13px; margin-bottom: 2px; }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 28px 32px; overflow-y: auto; }
+
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .top-bar h1 { font-size: 20px; font-weight: 800; }
+    .top-bar p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .date-range {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1.5px solid #ddd;
+      padding: 8px 14px; border-radius: 8px;
+      font-size: 13px; color: #555; cursor: pointer;
+    }
+
+    /* ── Tier badges ── */
+    .badge-free {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--free-light); color: var(--free);
+      font-size: 10px; font-weight: 800; padding: 3px 9px;
+      border-radius: 20px; letter-spacing: 0.3px;
+    }
+    .badge-paid {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--paid-light); color: var(--paid);
+      font-size: 10px; font-weight: 800; padding: 3px 9px;
+      border-radius: 20px; letter-spacing: 0.3px;
+      border: 1px solid var(--paid-border);
+    }
+
+    /* ── Section headers ── */
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px; margin-top: 28px;
+    }
+    .section-header:first-child { margin-top: 0; }
+    .section-header h2 { font-size: 14px; font-weight: 800; color: var(--text); }
+    .section-divider { flex: 1; height: 1px; background: #e0e0e0; }
+
+    /* ── Metric cards ── */
+    .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .cards-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+    .metric-card {
+      background: #fff; border-radius: 14px; padding: 18px;
+      border: 1.5px solid #eee; position: relative;
+    }
+    .metric-card.paid-card {
+      border-color: var(--paid-border);
+      background: linear-gradient(135deg, #fff 80%, #fef9ec 100%);
+    }
+    .metric-card .card-label { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+    .metric-card .card-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+    .metric-card .card-sub   { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .metric-card .card-delta {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 12px; font-weight: 700; margin-top: 6px;
+    }
+    .delta-up   { color: var(--green); }
+    .delta-down { color: var(--red); }
+
+    .card-badge { position: absolute; top: 12px; right: 12px; }
+
+    /* ── Lock overlay ── */
+    .locked-overlay {
+      position: absolute; inset: 0; border-radius: 13px;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(3px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .locked-overlay:hover { background: rgba(255,249,236,0.9); }
+    .lock-icon { font-size: 22px; }
+    .lock-text { font-size: 11px; font-weight: 700; color: var(--paid); text-align: center; }
+    .lock-btn {
+      background: var(--paid); color: #fff;
+      font-size: 10px; font-weight: 700;
+      padding: 5px 12px; border-radius: 20px;
+      border: none; cursor: pointer; margin-top: 2px;
+    }
+
+    /* blurred value under lock */
+    .blurred { filter: blur(6px); user-select: none; pointer-events: none; }
+
+    /* ── Charts area ── */
+    .chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-top: 14px; }
+    .chart-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px; }
+
+    .chart-card {
+      background: #fff; border-radius: 14px; padding: 20px;
+      border: 1.5px solid #eee; position: relative;
+    }
+    .chart-card.paid-card { border-color: var(--paid-border); }
+    .chart-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .chart-card p  { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+
+    /* Simple bar chart */
+    .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 100px; }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .bar {
+      width: 100%; border-radius: 6px 6px 0 0;
+      transition: opacity 0.2s;
+    }
+    .bar:hover { opacity: 0.8; }
+    .bar-label { font-size: 10px; color: var(--muted); }
+    .bar-val   { font-size: 10px; font-weight: 700; color: var(--text); }
+
+    /* Donut chart (CSS) */
+    .donut-wrap { display: flex; align-items: center; gap: 16px; }
+    .donut {
+      width: 90px; height: 90px; border-radius: 50%;
+      background: conic-gradient(
+        #0f3460 0% 42%,
+        #e94560 42% 67%,
+        #00b894 67% 82%,
+        #f39c12 82% 100%
+      );
+      display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0;
+    }
+    .donut::after {
+      content: ''; position: absolute;
+      width: 54px; height: 54px; border-radius: 50%;
+      background: #fff;
+    }
+    .donut-legend { display: flex; flex-direction: column; gap: 5px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+    .legend-dot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Line chart (SVG) */
+    .line-chart-wrap { position: relative; }
+
+    /* Funnel */
+    .funnel { display: flex; flex-direction: column; gap: 6px; }
+    .funnel-row { display: flex; align-items: center; gap: 10px; }
+    .funnel-bar-wrap { flex: 1; background: #f0f2f5; border-radius: 6px; height: 28px; overflow: hidden; }
+    .funnel-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; font-weight: 700; color: #fff; transition: width 0.8s ease; }
+    .funnel-label { font-size: 12px; color: var(--muted); width: 90px; text-align: right; }
+    .funnel-val   { font-size: 12px; font-weight: 700; width: 48px; }
+
+    /* Score display */
+    .score-big { font-size: 48px; font-weight: 800; line-height: 1; }
+    .stars-display { color: #f39c12; font-size: 18px; letter-spacing: 2px; margin: 4px 0; }
+    .score-count { font-size: 12px; color: var(--muted); }
+
+    /* Platform pills */
+    .platform-list { display: flex; flex-direction: column; gap: 8px; }
+    .platform-row { display: flex; align-items: center; gap: 10px; }
+    .platform-name { font-size: 12px; font-weight: 600; width: 80px; }
+    .platform-bar-wrap { flex: 1; background: #f0f2f5; border-radius: 20px; height: 8px; }
+    .platform-bar { height: 8px; border-radius: 20px; }
+    .platform-val { font-size: 12px; color: var(--muted); width: 36px; text-align: right; }
+
+    /* Upgrade banner */
+    .upgrade-banner {
+      background: linear-gradient(135deg, #b7791f, #d69e2e);
+      border-radius: 14px; padding: 18px 22px;
+      display: flex; align-items: center; gap: 16px;
+      margin-top: 28px; color: #fff;
+    }
+    .upgrade-banner .icon { font-size: 32px; flex-shrink: 0; }
+    .upgrade-banner h3 { font-size: 15px; font-weight: 800; }
+    .upgrade-banner p  { font-size: 12px; opacity: 0.85; margin-top: 3px; }
+    .upgrade-btn {
+      margin-left: auto; background: #fff; color: var(--paid);
+      font-size: 13px; font-weight: 800; padding: 10px 20px;
+      border-radius: 8px; border: none; cursor: pointer; flex-shrink: 0;
+    }
+
+    /* Review list */
+    .review-list { display: flex; flex-direction: column; gap: 10px; }
+    .review-item { background: #f8f9fa; border-radius: 10px; padding: 12px; }
+    .review-item .rv-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .rv-stars { color: #f39c12; font-size: 12px; }
+    .rv-date  { font-size: 11px; color: var(--muted); margin-left: auto; }
+    .rv-platform { font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+    .review-item p { font-size: 12px; color: #444; line-height: 1.6; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid #eee; }
+    .tab { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: var(--free); border-bottom-color: var(--free); }
+
+    @media (max-width: 1100px) {
+      .cards-grid { grid-template-columns: repeat(2, 1fr); }
+      .chart-row  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      📊 ReviewFlow
+      <span>管理ダッシュボード</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">メイン</div>
+      <div class="nav-item active">🏠 &nbsp;概要</div>
+      <div class="nav-item">📈 &nbsp;レビュー分析</div>
+      <div class="nav-item">👥 &nbsp;顧客分析</div>
+      <div class="nav-item">🎰 &nbsp;特典・ガチャ</div>
+      <div class="nav-item">💚 &nbsp;LINE管理</div>
+      <div class="nav-section">設定</div>
+      <div class="nav-item">⚙️ &nbsp;店舗設定</div>
+      <div class="nav-item">🔗 &nbsp;外部連携</div>
+      <div class="nav-item" style="color:#b7791f;">⭐ &nbsp;プランアップグレード</div>
+    </nav>
+    <div class="sidebar-store">
+      <strong>Som Tam Garden</strong>
+      Thong Lo, Bangkok
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div>
+        <h1>ダッシュボード概要</h1>
+        <p>最終更新: 2026年4月22日 09:00</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="date-range">📅 2026年4月（今月）▾</div>
+      </div>
+    </div>
+
+    <!-- ══ FREE SECTION ══ -->
+    <div class="section-header">
+      <span class="badge-free">✓ 無料プラン</span>
+      <h2>自社計測データ</h2>
+      <div class="section-divider"></div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="cards-grid">
+      <div class="metric-card">
+        <div class="card-badge"><span class="badge-free">無料</span></div>
+        <div class="card-label">QRスキャン数（今月）</div>
+        <div class="card-value">1,248</div>
+        <div class="card-delta delta-up">▲ 12% 先月比</div>
+      </div>
+      <div class="metric-card">
+        <div class="card-badge"><span class="badge-free">無料</span></div>
+        <div class="card-label">アンケート回答数</div>
+        <div class="card-value">876</div>
+        <div class="card-sub">回答率 <strong>70.2%</strong></div>
+      </div>
+      <div class="metric-card">
+        <div class="card-badge"><span class="badge-free">無料</span></div>
+        <div class="card-label">外部レビュー転換数</div>
+        <div class="card-value">312</div>
+        <div class="card-sub">転換率 <strong>35.6%</strong></div>
+        <div class="card-delta delta-up">▲ 8% 先月比</div>
+      </div>
+      <div class="metric-card">
+        <div class="card-badge"><span class="badge-free">無料</span></div>
+        <div class="card-label">ネガティブ吸収件数</div>
+        <div class="card-value">89</div>
+        <div class="card-sub">全回答の <strong>10.2%</strong> を保護</div>
+      </div>
+    </div>
+
+    <!-- Charts row 1 -->
+    <div class="chart-row" style="margin-top:14px;">
+      <!-- Funnel -->
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h3>レビュー獲得ファネル</h3>
+          <span class="badge-free">無料</span>
+        </div>
+        <p>QRスキャンからレビュー投稿までの転換率</p>
+        <div class="funnel">
+          <div class="funnel-row">
+            <div class="funnel-label">QRスキャン</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:100%;background:#0f3460;">1,248</div>
+            </div>
+            <div class="funnel-val">1,248</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">回答完了</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:70%;background:#1a5276;">876</div>
+            </div>
+            <div class="funnel-val">876</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">4★以上</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:56%;background:#00b894;">697</div>
+            </div>
+            <div class="funnel-val">697</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">PFクリック</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:40%;background:#27ae60;">499</div>
+            </div>
+            <div class="funnel-val">499</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">レビュー転換</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:25%;background:#f39c12;">312</div>
+            </div>
+            <div class="funnel-val">312</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Language donut -->
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h3>言語別来客比率</h3>
+          <span class="badge-free">無料</span>
+        </div>
+        <p>自動検出結果（今月）</p>
+        <div class="donut-wrap">
+          <div class="donut"></div>
+          <div class="donut-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#0f3460"></div>タイ語 42%</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e94560"></div>英語 25%</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#00b894"></div>日本語 15%</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>その他 18%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row 2 -->
+    <div class="chart-row-3">
+      <!-- Platform clicks -->
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h3>PF別クリック数</h3>
+          <span class="badge-free">無料</span>
+        </div>
+        <p>誘導先プラットフォーム</p>
+        <div class="platform-list">
+          <div class="platform-row">
+            <div class="platform-name">🗺 Google</div>
+            <div class="platform-bar-wrap"><div class="platform-bar" style="width:72%;background:#0f3460;"></div></div>
+            <div class="platform-val">358</div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-name">🧳 TripAdvisor</div>
+            <div class="platform-bar-wrap"><div class="platform-bar" style="width:20%;background:#00afef;"></div></div>
+            <div class="platform-val">98</div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-name">🍜 Wongnai</div>
+            <div class="platform-bar-wrap"><div class="platform-bar" style="width:16%;background:#e94560;"></div></div>
+            <div class="platform-val">79</div>
+          </div>
+          <div class="platform-row">
+            <div class="platform-name">📸 Instagram</div>
+            <div class="platform-bar-wrap"><div class="platform-bar" style="width:13%;background:#833ab4;"></div></div>
+            <div class="platform-val">64</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LINE -->
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h3>LINE友達追加数</h3>
+          <span class="badge-free">無料</span>
+        </div>
+        <p>累計リスト獲得数</p>
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-size:42px;font-weight:800;color:#06C755;line-height:1;">2,841</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">累計友達数</div>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;">
+            <div style="text-align:center;">
+              <div style="font-size:18px;font-weight:800;color:var(--text);">+186</div>
+              <div style="font-size:10px;color:var(--muted);">今月追加</div>
+            </div>
+            <div style="width:1px;background:#eee;"></div>
+            <div style="text-align:center;">
+              <div style="font-size:18px;font-weight:800;color:var(--green);">21.2%</div>
+              <div style="font-size:10px;color:var(--muted);">追加率</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Internal satisfaction -->
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h3>内部満足度分布</h3>
+          <span class="badge-free">無料</span>
+        </div>
+        <p>アンケート回答（フィルタ前）</p>
+        <div class="bar-chart">
+          <div class="bar-col">
+            <div class="bar-val">42</div>
+            <div class="bar" style="height:30px;background:#e94560;"></div>
+            <div class="bar-label">★1</div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-val">47</div>
+            <div class="bar" style="height:34px;background:#f39c12;"></div>
+            <div class="bar-label">★2</div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-val">62</div>
+            <div class="bar" style="height:44px;background:#fdcb6e;"></div>
+            <div class="bar-label">★3</div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-val">298</div>
+            <div class="bar" style="height:78px;background:#00b894;"></div>
+            <div class="bar-label">★4</div>
+          </div>
+          <div class="bar-col">
+            <div class="bar-val">427</div>
+            <div class="bar" style="height:100px;background:#0f3460;"></div>
+            <div class="bar-label">★5</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAID SECTION ══ -->
+    <div class="section-header" style="margin-top:36px;">
+      <span class="badge-paid">⭐ 有料オプション</span>
+      <h2>外部プラットフォーム連携データ</h2>
+      <div class="section-divider"></div>
+    </div>
+
+    <!-- Paid KPI cards -->
+    <div class="cards-grid">
+
+      <!-- Google score - LOCKED -->
+      <div class="metric-card paid-card" style="position:relative;">
+        <div class="card-badge"><span class="badge-paid">🔒 有料</span></div>
+        <div class="card-label">Google マップ 評価</div>
+        <div class="card-value blurred">4.3</div>
+        <div class="stars-display blurred" style="font-size:14px;">★★★★☆</div>
+        <div class="card-sub blurred">レビュー 128件</div>
+        <div class="locked-overlay" onclick="showUpgrade()">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-text">Google連携オプション<br>で解放</div>
+          <button class="lock-btn">アップグレード</button>
+        </div>
+      </div>
+
+      <!-- Google review count - LOCKED -->
+      <div class="metric-card paid-card" style="position:relative;">
+        <div class="card-badge"><span class="badge-paid">🔒 有料</span></div>
+        <div class="card-label">今月の新規Googleレビュー</div>
+        <div class="card-value blurred">+34</div>
+        <div class="card-delta delta-up blurred">▲ 18% 先月比</div>
+        <div class="card-sub blurred">うち ★4以上 91%</div>
+        <div class="locked-overlay" onclick="showUpgrade()">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-text">Google連携オプション<br>で解放</div>
+          <button class="lock-btn">アップグレード</button>
+        </div>
+      </div>
+
+      <!-- TripAdvisor - LOCKED -->
+      <div class="metric-card paid-card" style="position:relative;">
+        <div class="card-badge"><span class="badge-paid">🔒 有料</span></div>
+        <div class="card-label">TripAdvisor 評価</div>
+        <div class="card-value blurred">4.1</div>
+        <div class="card-sub blurred">レビュー 56件</div>
+        <div class="card-delta delta-up blurred">▲ 0.2 先月比</div>
+        <div class="locked-overlay" onclick="showUpgrade()">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-text">外部PF連携オプション<br>で解放</div>
+          <button class="lock-btn">アップグレード</button>
+        </div>
+      </div>
+
+      <!-- Wongnai - LOCKED -->
+      <div class="metric-card paid-card" style="position:relative;">
+        <div class="card-badge"><span class="badge-paid">🔒 有料</span></div>
+        <div class="card-label">Wongnai 評価</div>
+        <div class="card-value blurred">8.4</div>
+        <div class="card-sub blurred">レビュー 43件 / 10点満点</div>
+        <div class="locked-overlay" onclick="showUpgrade()">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-text">外部PF連携オプション<br>で解放</div>
+          <button class="lock-btn">アップグレード</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paid charts row -->
+    <div class="chart-row" style="margin-top:14px;">
+
+      <!-- Score trend - LOCKED -->
+      <div class="chart-card paid-card" style="position:relative;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h3>Googleマップ評価スコア推移</h3>
+          <span class="badge-paid">🔒 有料</span>
+        </div>
+        <p>過去6ヶ月の評価スコア変化</p>
+        <div class="blurred">
+          <svg width="100%" height="100" viewBox="0 0 400 100">
+            <polyline points="0,70 70,65 140,55 200,50 280,40 350,32 400,28"
+              fill="none" stroke="#0f3460" stroke-width="3" stroke-linecap="round"/>
+            <polyline points="0,70 70,65 140,55 200,50 280,40 350,32 400,28"
+              fill="url(#grad)" stroke="none" opacity="0.15"/>
+            <defs>
+              <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#0f3460"/>
+                <stop offset="100%" stop-color="transparent"/>
+              </linearGradient>
+            </defs>
+            <circle cx="0" cy="70" r="4" fill="#0f3460"/>
+            <circle cx="70" cy="65" r="4" fill="#0f3460"/>
+            <circle cx="140" cy="55" r="4" fill="#0f3460"/>
+            <circle cx="200" cy="50" r="4" fill="#0f3460"/>
+            <circle cx="280" cy="40" r="4" fill="#0f3460"/>
+            <circle cx="350" cy="32" r="4" fill="#0f3460"/>
+            <circle cx="400" cy="28" r="4" fill="#0f3460"/>
+            <text x="0" y="92" font-size="10" fill="#888">10月</text>
+            <text x="60" y="92" font-size="10" fill="#888">11月</text>
+            <text x="128" y="92" font-size="10" fill="#888">12月</text>
+            <text x="186" y="92" font-size="10" fill="#888">1月</text>
+            <text x="263" y="92" font-size="10" fill="#888">2月</text>
+            <text x="333" y="92" font-size="10" fill="#888">3月</text>
+            <text x="383" y="92" font-size="10" fill="#888">4月</text>
+          </svg>
+        </div>
+        <div class="locked-overlay" onclick="showUpgrade()">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-text">Google連携オプションで<br>スコア推移を確認</div>
+          <button class="lock-btn">アップグレード</button>
+        </div>
+      </div>
+
+      <!-- Latest reviews - LOCKED -->
+      <div class="chart-card paid-card" style="position:relative;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <h3>最新レビュー</h3>
+          <span class="badge-paid">🔒 有料</span>
+        </div>
+        <p>外部サイトに投稿されたレビュー</p>
+        <div class="review-list blurred">
+          <div class="review-item">
+            <div class="rv-header">
+              <span class="rv-stars">★★★★★</span>
+              <span class="rv-platform">Google</span>
+              <span class="rv-date">4月21日</span>
+            </div>
+            <p>スタッフがとても親切で、料理も本格的で美味しかったです。また来ます！</p>
+          </div>
+          <div class="review-item">
+            <div class="rv-header">
+              <span class="rv-stars">★★★★☆</span>
+              <span class="rv-platform">TripAdvisor</span>
+              <span class="rv-date">4月20日</span>
+            </div>
+            <p>Great atmosphere and authentic Thai food. Slightly pricey but worth it.</p>
+          </div>
+        </div>
+        <div class="locked-overlay" onclick="showUpgrade()">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-text">外部PF連携で<br>レビュー全文を確認</div>
+          <button class="lock-btn">アップグレード</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upgrade banner -->
+    <div class="upgrade-banner">
+      <div class="icon">⭐</div>
+      <div>
+        <h3>外部プラットフォーム連携オプション</h3>
+        <p>Google マップ・TripAdvisor・Wongnaiのスコア推移・レビュー全文をリアルタイムで確認できます。月2〜3回の自動同期付き。</p>
+      </div>
+      <button class="upgrade-btn" onclick="showUpgrade()">プランを見る →</button>
+    </div>
+
+    <div style="height:40px;"></div>
+  </main>
+</div>
+
+<!-- Upgrade modal -->
+<div id="upgradeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px;max-width:440px;width:90%;position:relative;">
+    <button onclick="document.getElementById('upgradeModal').style.display='none'"
+      style="position:absolute;top:16px;right:16px;background:#f0f0f0;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;">✕</button>
+    <div style="font-size:36px;margin-bottom:12px;">⭐</div>
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:8px;">外部連携オプション</h2>
+    <p style="font-size:13px;color:#888;margin-bottom:20px;line-height:1.7;">Google マップ・TripAdvisor・Wongnaiのデータを自動収集し、ダッシュボードで一元管理できます。</p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+      <div style="background:#fef9ec;border:1.5px solid #f6c05c;border-radius:12px;padding:14px 16px;">
+        <div style="font-weight:800;font-size:14px;color:#b7791f;">Google連携プラン</div>
+        <div style="font-size:13px;color:#555;margin-top:4px;">Googleマップのスコア・レビュー取得（月3回同期）</div>
+        <div style="font-size:18px;font-weight:800;margin-top:8px;">+¥980 <span style="font-size:12px;font-weight:400;color:#888;">/ 店舗 / 月</span></div>
+      </div>
+      <div style="background:#fef9ec;border:1.5px solid #f6c05c;border-radius:12px;padding:14px 16px;">
+        <div style="font-weight:800;font-size:14px;color:#b7791f;">全PF連携プラン</div>
+        <div style="font-size:13px;color:#555;margin-top:4px;">Google + TripAdvisor + Wongnai（月3回同期）</div>
+        <div style="font-size:18px;font-weight:800;margin-top:8px;">+¥2,480 <span style="font-size:12px;font-weight:400;color:#888;">/ 店舗 / 月</span></div>
+      </div>
+    </div>
+    <button style="width:100%;background:#b7791f;color:#fff;font-size:15px;font-weight:800;padding:14px;border-radius:10px;border:none;cursor:pointer;">
+      アップグレードする
+    </button>
+  </div>
+</div>
+
+<script>
+  function showUpgrade() {
+    document.getElementById('upgradeModal').style.display = 'flex';
+  }
+</script>
+</body>
+</html>
